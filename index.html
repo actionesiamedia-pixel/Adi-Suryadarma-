@@ -10,19 +10,38 @@ function draw(){
  ctx.fillStyle=bg;ctx.fillRect(0,0,1200,630);pattern($('pattern').value,ink);
  const left=175,right=175,available=1200-left-right;
  ctx.textAlign='left';ctx.textBaseline='alphabetic';
- ctx.fillStyle=accent;ctx.font='700 23px Inter, Arial, sans-serif';ctx.fillText($('category').value.toUpperCase(),left,124);
+ // Category has its own reserved band.
+ ctx.fillStyle=accent;ctx.font='700 23px Inter, Arial, sans-serif';ctx.fillText($('category').value.toUpperCase(),left,119);
  const title=$('headline').value.trim()||'Judul artikel';
- let fitted=fit(title,available,5,82,29,'800','Inter, Arial, sans-serif');
- let lines=fitted.lines.slice();let size=fitted.size;
- // Keep very long titles within the safe area and maximum five lines.
- if(lines.length>5){lines=lines.slice(0,5);let last=lines[4];ctx.font=fitted.font;while(last.length>1&&ctx.measureText(last+'…').width>available)last=last.slice(0,-1);lines[4]=last+'…'}
- const lineHeight=size*1.16;
- const blockHeight=lines.length*lineHeight;
- const startTop= Math.max(166,Math.min(480-blockHeight,323-blockHeight/2));
- ctx.fillStyle=ink;ctx.font=fitted.font;
- lines.forEach((line,i)=>ctx.fillText(line,left,startTop+size+i*lineHeight));
- ctx.strokeStyle=accent;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(left,555);ctx.lineTo(left+42,555);ctx.stroke();
- ctx.fillStyle=muted;ctx.font='19px Inter, Arial, sans-serif';ctx.fillText('adisuryadarma.com',left,590);
+ const top=167,bottom=487,maxHeight=bottom-top;
+ let chosen=null;
+ for(let size=82;size>=24;size--){
+   const font=`800 ${size}px Inter, Arial, sans-serif`;
+   const lines=wrap(title,available,font);
+   const lineHeight=size*1.13;
+   const height=size+(lines.length-1)*lineHeight;
+   ctx.font=font;
+   if(lines.length<=5 && height<=maxHeight && lines.every(line=>ctx.measureText(line).width<=available)){
+     chosen={font,size,lines,lineHeight,height};break;
+   }
+ }
+ if(!chosen){
+   const size=24,font=`800 ${size}px Inter, Arial, sans-serif`,lineHeight=size*1.13;
+   let lines=wrap(title,available,font).slice(0,5);
+   if(wrap(title,available,font).length>5){
+     ctx.font=font;let last=lines[4];
+     while(last.length>0 && ctx.measureText(last+'…').width>available)last=last.slice(0,-1);
+     lines[4]=last+'…';
+   }
+   chosen={font,size,lines,lineHeight,height:size+(lines.length-1)*lineHeight};
+ }
+ // Center the title only inside its own area; never overlap the watermark.
+ const baseline=top+(maxHeight-chosen.height)/2+chosen.size;
+ ctx.fillStyle=ink;ctx.font=chosen.font;
+ chosen.lines.forEach((line,i)=>ctx.fillText(line,left,baseline+i*chosen.lineHeight));
+ // Watermark footer is a separate, permanently reserved area.
+ ctx.strokeStyle=accent;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(left,548);ctx.lineTo(left+42,548);ctx.stroke();
+ ctx.fillStyle=muted;ctx.font='19px Inter, Arial, sans-serif';ctx.fillText('adisuryadarma.com',left,585);
 }
 const sw=$('swatches');palette.forEach(hex=>{const b=document.createElement('button');b.className='swatch'+(hex===color?' active':'');b.style.background=hex;b.title=hex;b.type='button';b.addEventListener('click',()=>{color=hex;$('color').value=hex;document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('active'));b.classList.add('active');draw()});sw.appendChild(b)});['category','pattern','headline'].forEach(id=>$(id).addEventListener('input',draw));$('color').addEventListener('input',e=>{color=e.target.value;document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('active'));draw()});$('download').addEventListener('click',()=>{draw();const a=document.createElement('a');a.download='adi-suryadarma-'+$('category').value.toLowerCase()+'-cover.png';a.href=canvas.toDataURL('image/png');a.click()});draw();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(draw);
 </script></body></html>
