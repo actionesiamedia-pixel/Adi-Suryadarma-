@@ -65,6 +65,9 @@ async function compressWebp(){
   }
   throw new Error('Tidak dapat menghasilkan WebP maksimal 10 KB.');
 }
+function slugifyTitle(value){
+  return (value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') || 'featured-image';
+}
 $('download').addEventListener('click',async()=>{
   const button=$('download'),status=$('exportStatus');
   button.disabled=true;button.textContent='Mengompresi WebP…';status.textContent='Mencari kualitas terbaik di bawah 10 KB…';
@@ -73,7 +76,7 @@ $('download').addEventListener('click',async()=>{
     draw();
     const result=await compressWebp();
     const url=URL.createObjectURL(result.blob),a=document.createElement('a');
-    a.download='adi-suryadarma-'+$('category').value.toLowerCase()+'-cover.webp';
+    a.download=slugifyTitle($('headline').value)+'.webp';
     a.href=url;document.body.appendChild(a);a.click();a.remove();
     status.textContent=`Berhasil: ${(result.blob.size/1024).toFixed(2)} KB • ${result.width} × ${result.height} px${result.width<1200?' (resolusi diturunkan agar ≤ 10 KB)':''}.`;
     setTimeout(()=>URL.revokeObjectURL(url),30000);
